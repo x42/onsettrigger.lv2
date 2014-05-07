@@ -1,0 +1,10 @@
+
+ost:bassdrum_mono@URI_SUFFIX@
+	a lv2:Plugin ;
+	lv2:binary <@LV2NAME@@LIB_EXT@>  ;
+	rdfs:seeAlso <@LV2NAME@.ttl> .
+
+ost:bassdrum_stereo@URI_SUFFIX@
+	a lv2:Plugin ;
+	lv2:binary <@LV2NAME@@LIB_EXT@>  ;
+	rdfs:seeAlso <@LV2NAME@.ttl> .
