@@ -54,7 +54,7 @@ $(BUILDDIR)$(LV2NAME).ttl: lv2ttl/$(LV2NAME).ttl.in lv2ttl/$(LV2NAME).lv2.in Mak
 	sed "s/@URI_SUFFIX@//g;s/@NAME_SUFFIX@//g" \
 	  lv2ttl/$(LV2NAME).lv2.in >> $(BUILDDIR)$(LV2NAME).ttl
 
-$(BUILDDIR)$(LV2NAME)$(LIB_EXT): src/ost.c
+$(BUILDDIR)$(LV2NAME)$(LIB_EXT): src/ost.c src/spectr.c
 	@mkdir -p $(BUILDDIR)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -std=c99 \
 	  -o $(BUILDDIR)$(LV2NAME)$(LIB_EXT) src/ost.c \

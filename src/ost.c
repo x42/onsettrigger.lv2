@@ -34,6 +34,16 @@
 #include "lv2/lv2plug.in/ns/ext/urid/urid.h"
 #include "lv2/lv2plug.in/ns/ext/midi/midi.h"
 
+
+#ifndef MIN
+#define MIN(A,B) ( (A) < (B) ? (A) : (B) )
+#endif
+#ifndef MAX
+#define MAX(A,B) ( (A) > (B) ? (A) : (B) )
+#endif
+
+#include "spectr.c"
+
 /******************************************************************************
  * LV2 routines
  */
@@ -61,8 +71,17 @@ typedef struct {
 	LV2_URID midi_MidiEvent;
 	LV2_URID atom_Sequence;
 
+	/* internal state */
+	struct FilterBank fb;
+	uint32_t midi_note_off_timeout;
+	float rms_postfilter;
+
+	/* config */
 	double rate;
 	uint32_t n_channels;
+	uint32_t midi_note_off_cfg;
+	float rms_omega;
+
 } OST;
 
 static LV2_Handle
@@ -104,6 +123,16 @@ instantiate(
 	self->atom_Sequence  = self->map->map(self->map->handle, LV2_ATOM__Sequence);
 	lv2_atom_forge_init(&self->forge, self->map);
 
+	/* config */
+	self->midi_note_off_cfg = MAX(1, .05 * rate)  ;
+	self->rate = rate;
+	self->rms_omega = 1.0f - expf(-2.0 * M_PI * 15.0 / rate);
+
+	/* state */
+	self->rms_postfilter = 0;
+	self->midi_note_off_timeout = 0;
+	bandpass_setup(&self->fb, self->rate, 120, 50, 2);
+
 	return (LV2_Handle)self;
 }
 
@@ -142,6 +171,16 @@ static void midi_tx(OST *self, int64_t tme, uint8_t raw_midi[3])
 	lv2_atom_forge_pad(&self->forge, sizeof(LV2_Atom) + midiatom.size);
 }
 
+static void midi_note(OST *self, int64_t tme, uint8_t velocity)
+{
+	uint8_t raw_midi[3];
+	const uint8_t channel = 0; // TODO
+	raw_midi[0] = (channel & 0x0f) | ((velocity & 0x7f) ? 0x90 : 0x80);
+	raw_midi[1] = (uint8_t)(*self->m_note) & 0x7f;
+	raw_midi[2] = velocity & 0x7f;
+	midi_tx(self, tme, raw_midi);
+}
+
 static void
 run(LV2_Handle handle, uint32_t n_samples)
 {
@@ -149,15 +188,35 @@ run(LV2_Handle handle, uint32_t n_samples)
 
 	/* localize variables */
 	float const * const a_in = self->a_in[0];
+	float rms_postfilter = self->rms_postfilter;
+	float rms_postfilter_z = self->rms_postfilter;
+	uint32_t midi_note_off_timeout = self->midi_note_off_timeout;
+	const float rms_omega  = self->rms_omega;
 
 	const uint32_t capacity = self->midiout->atom.size;
 	lv2_atom_forge_set_buffer(&self->forge, (uint8_t*)self->midiout, capacity);
 	lv2_atom_forge_sequence_head(&self->forge, &self->frame, 0);
 
-	for (uint32_t j = 0 ; j < n_samples; ++j) {
-		// 
+	for (uint32_t n = 0 ; n < n_samples; ++n) {
+		const float signal = bandpass_process(&self->fb, a_in[n]);
+		rms_postfilter_z = rms_postfilter;
+		rms_postfilter += rms_omega * ( (signal * signal) - rms_postfilter) + 1e-20;
+
+		/* quick rms+time based hack to do something */
+		if (midi_note_off_timeout > 0) {
+			if (--midi_note_off_timeout == 0) {
+				midi_note(self, n, 0);
+			}
+		} else if (rms_postfilter > .15 && rms_postfilter_z < rms_postfilter) {
+			midi_note_off_timeout = self->midi_note_off_cfg;
+			//printf("TRIGGER! %.2f\n", rms_postfilter);
+			midi_note(self, n, 0x7f);
+		}
 	}
 
+	/* copy back variables */
+	self->rms_postfilter = rms_postfilter;
+	self->midi_note_off_timeout = midi_note_off_timeout;
 	//lv2_atom_forge_pop(&self->forge, &self->frame);
 }
 

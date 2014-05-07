@@ -23,7 +23,7 @@ ost:bassdrum_mono@URI_SUFFIX@
 		lv2:name "Midi note to trigger" ;
 		lv2:minimum 0.0 ;
 		lv2:maximum 127.0 ;
-		lv2:default 42.0;
+		lv2:default 24.0;
 		lv2:portProperty lv2:integer;
 		rdfs:comment ""
 	],
@@ -60,7 +60,7 @@ ost:bassdrum_stereo@URI_SUFFIX@
 		lv2:name "Midi note to trigger" ;
 		lv2:minimum 0.0 ;
 		lv2:maximum 127.0 ;
-		lv2:default 42.0;
+		lv2:default 24.0;
 		lv2:portProperty lv2:integer;
 		rdfs:comment ""
 	],
