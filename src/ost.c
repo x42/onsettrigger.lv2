@@ -52,6 +52,7 @@
 
 typedef enum {
 	OST_MIDI_OUT,
+	OST_LATENCY,
 	OST_MIDI_NOTE,
 	OST_AIN_1,
 	OST_AIN_2,
@@ -62,6 +63,7 @@ typedef struct {
 	/* Input Ports */
 	float* a_in[2];
 	float* m_note;
+	float* p_latency;
 
 	/* MIDI Out */
 	LV2_Atom_Sequence* midiout;
@@ -153,6 +155,9 @@ connect_port(LV2_Handle handle,
 		case OST_AIN_2:
 			self->a_in[1]  = (float*)data;
 			break;
+		case OST_LATENCY:
+			self->p_latency = (float*)data;
+			break;
 		case OST_MIDI_NOTE:
 			self->m_note = (float*)data;
 			break;
@@ -192,6 +197,12 @@ run(LV2_Handle handle, uint32_t n_samples)
 	float rms_postfilter_z = self->rms_postfilter;
 	uint32_t midi_note_off_timeout = self->midi_note_off_timeout;
 	const float rms_omega  = self->rms_omega;
+
+	*self->p_latency = .017 * self->rate;
+
+	if (n_samples == 0 || ! self->midiout) {
+		return;
+	}
 
 	const uint32_t capacity = self->midiout->atom.size;
 	lv2_atom_forge_set_buffer(&self->forge, (uint8_t*)self->midiout, capacity);
