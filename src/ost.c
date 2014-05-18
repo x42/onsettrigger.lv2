@@ -77,11 +77,14 @@ typedef struct {
 	struct FilterBank fb;
 	uint32_t midi_note_off_timeout;
 	float rms_postfilter;
+	float rms_volume;
+	uint32_t volume_timeout;
 
 	/* config */
 	double rate;
 	uint32_t n_channels;
 	uint32_t midi_note_off_cfg;
+	uint32_t volume_timeout_cfg;
 	float rms_omega;
 
 } OST;
@@ -126,14 +129,17 @@ instantiate(
 	lv2_atom_forge_init(&self->forge, self->map);
 
 	/* config */
-	self->midi_note_off_cfg = MAX(1, .05 * rate)  ;
+	self->midi_note_off_cfg = MAX(5, .05 * rate)  ;
+	self->volume_timeout_cfg = MAX(1, .015 * rate)  ;
 	self->rate = rate;
 	self->rms_omega = 1.0f - expf(-2.0 * M_PI * 15.0 / rate);
 
 	/* state */
 	self->rms_postfilter = 0;
 	self->midi_note_off_timeout = 0;
-	bandpass_setup(&self->fb, self->rate, 120, 50, 2);
+	self->rms_volume = 0;
+	self->volume_timeout = 0;
+	bandpass_setup(&self->fb, self->rate, 100, 70, 2);
 
 	return (LV2_Handle)self;
 }
@@ -195,10 +201,12 @@ run(LV2_Handle handle, uint32_t n_samples)
 	float const * const a_in = self->a_in[0];
 	float rms_postfilter = self->rms_postfilter;
 	float rms_postfilter_z = self->rms_postfilter;
+	float rms_volume = self->rms_volume;
 	uint32_t midi_note_off_timeout = self->midi_note_off_timeout;
+	uint32_t volume_timeout = self->volume_timeout;
 	const float rms_omega  = self->rms_omega;
 
-	*self->p_latency = .017 * self->rate;
+	*self->p_latency = .025 * self->rate;
 
 	if (n_samples == 0 || ! self->midiout) {
 		return;
@@ -213,21 +221,37 @@ run(LV2_Handle handle, uint32_t n_samples)
 		rms_postfilter_z = rms_postfilter;
 		rms_postfilter += rms_omega * ( (signal * signal) - rms_postfilter) + 1e-20;
 
+		if (volume_timeout > 0) {
+			rms_volume = MAX(rms_volume, rms_postfilter);
+		}
+
 		/* quick rms+time based hack to do something */
 		if (midi_note_off_timeout > 0) {
-			if (--midi_note_off_timeout == 0) {
+			if (volume_timeout > 0) {
+				if (--volume_timeout == 0) {
+					//printf("TRIGGER:      %.2f\n", rms_volume);
+					int vel = 48 + rms_volume * 310; // TODO, make configurable
+					vel = MIN(127, vel);
+					midi_note(self, n, vel & 0x7f);
+				}
+			}
+			else if (--midi_note_off_timeout == 0) {
 				midi_note(self, n, 0);
 			}
-		} else if (rms_postfilter > .15 && rms_postfilter_z < rms_postfilter) {
+		}
+		else if (rms_postfilter > .01 && rms_postfilter_z < rms_postfilter) {
 			midi_note_off_timeout = self->midi_note_off_cfg;
-			//printf("TRIGGER! %.2f\n", rms_postfilter);
-			midi_note(self, n, 0x7f);
+			volume_timeout = self->volume_timeout_cfg;
+			//printf("PRE-TRIGGER. %.2f\n", rms_postfilter);
+			rms_volume = rms_postfilter;
 		}
 	}
 
 	/* copy back variables */
 	self->rms_postfilter = rms_postfilter;
+	self->rms_volume = rms_volume;
 	self->midi_note_off_timeout = midi_note_off_timeout;
+	self->volume_timeout = volume_timeout;
 	//lv2_atom_forge_pop(&self->forge, &self->frame);
 }
 
