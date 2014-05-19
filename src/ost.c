@@ -53,7 +53,11 @@
 typedef enum {
 	OST_MIDI_OUT,
 	OST_LATENCY,
+	OST_THRESHOLD,
 	OST_MIDI_NOTE,
+	OST_MIDI_VEL_MIN,
+	OST_MIDI_VEL_SCALE,
+	OST_MIDI_VEL_EXP,
 	OST_AIN_1,
 	OST_AIN_2,
 } PortIndex;
@@ -64,6 +68,10 @@ typedef struct {
 	float* a_in[2];
 	float* m_note;
 	float* p_latency;
+	float* p_threshold;
+	float* m_vel_min;
+	float* m_vel_scale;
+	float* m_vel_exp;
 
 	/* MIDI Out */
 	LV2_Atom_Sequence* midiout;
@@ -86,6 +94,9 @@ typedef struct {
 	uint32_t midi_note_off_cfg;
 	uint32_t volume_timeout_cfg;
 	float rms_omega;
+	float latency;
+	float threshold_db;
+	float threshold_sig;
 
 } OST;
 
@@ -133,6 +144,9 @@ instantiate(
 	self->volume_timeout_cfg = MAX(1, .015 * rate)  ;
 	self->rate = rate;
 	self->rms_omega = 1.0f - expf(-2.0 * M_PI * 15.0 / rate);
+	self->latency = .025 * rate;
+	self->threshold_db = -40;
+	self->threshold_sig = 0.01;
 
 	/* state */
 	self->rms_postfilter = 0;
@@ -164,8 +178,20 @@ connect_port(LV2_Handle handle,
 		case OST_LATENCY:
 			self->p_latency = (float*)data;
 			break;
+		case OST_THRESHOLD:
+			self->p_threshold = (float*)data;
+			break;
 		case OST_MIDI_NOTE:
 			self->m_note = (float*)data;
+			break;
+		case OST_MIDI_VEL_MIN:
+			self->m_vel_min = (float*)data;
+			break;
+		case OST_MIDI_VEL_SCALE:
+			self->m_vel_scale = (float*)data;
+			break;
+		case OST_MIDI_VEL_EXP:
+			self->m_vel_exp = (float*)data;
 			break;
 	}
 }
@@ -206,7 +232,18 @@ run(LV2_Handle handle, uint32_t n_samples)
 	uint32_t volume_timeout = self->volume_timeout;
 	const float rms_omega  = self->rms_omega;
 
-	*self->p_latency = .025 * self->rate;
+	if (*self->p_threshold != self->threshold_db) {
+		self->threshold_db = *self->p_threshold;
+		const float thr = MAX(-60, MIN(0, *self->p_threshold));
+		self->threshold_sig = powf(10, 0.05 * thr);
+	}
+
+	const float threshold = self->threshold_sig;
+	const float velocity_min = MAX(1.f, MIN(127.f, *self->m_vel_min)); // 1..127, default 16
+	const float velocity_scale = MAX(0.f, MIN(540.f, 140.f * *self->m_vel_scale)); // 1..540, default 140
+	const float velocity_exp = MAX(0.f, MIN(1.f, *self->m_vel_exp)); // 0..1, default .6
+
+	*self->p_latency = self->latency;
 
 	if (n_samples == 0 || ! self->midiout) {
 		return;
@@ -229,9 +266,9 @@ run(LV2_Handle handle, uint32_t n_samples)
 		if (midi_note_off_timeout > 0) {
 			if (volume_timeout > 0) {
 				if (--volume_timeout == 0) {
-					//printf("TRIGGER:      %.2f\n", rms_volume);
-					int vel = 48 + rms_volume * 310; // TODO, make configurable
-					vel = MIN(127, vel);
+					int vel = velocity_min + powf(rms_volume, velocity_exp) * velocity_scale;
+					vel = MAX(1, MIN(127, vel));
+					//printf("TRIGGER:      %.2f -> %d\n", rms_volume, vel);
 					midi_note(self, n, vel & 0x7f);
 				}
 			}
@@ -239,10 +276,9 @@ run(LV2_Handle handle, uint32_t n_samples)
 				midi_note(self, n, 0);
 			}
 		}
-		else if (rms_postfilter > .01 && rms_postfilter_z < rms_postfilter) {
+		else if (rms_postfilter > threshold && rms_postfilter_z < rms_postfilter) {
 			midi_note_off_timeout = self->midi_note_off_cfg;
 			volume_timeout = self->volume_timeout_cfg;
-			//printf("PRE-TRIGGER. %.2f\n", rms_postfilter);
 			rms_volume = rms_postfilter;
 		}
 	}

@@ -8,8 +8,8 @@
 @prefix ui:    <http://lv2plug.in/ns/extensions/ui#> .
 @prefix urid:  <http://lv2plug.in/ns/ext/urid#> .
 @prefix pg:    <http://lv2plug.in/ns/ext/port-groups#> .
-@prefix ost:   <http://gareus.org/oss/lv2/@LV2NAME@#> .
 @prefix pprops:<http://lv2plug.in/ns/ext/port-props#> .
+@prefix ost:   <http://gareus.org/oss/lv2/@LV2NAME@#> .
 
 <http://gareus.org/rgareus#me>
 	a foaf:Person ;

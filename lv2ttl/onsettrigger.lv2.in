@@ -1,12 +1,12 @@
 
 ost:bassdrum_mono@URI_SUFFIX@
-	a lv2:Plugin, doap:Project;
+	a lv2:Plugin, doap:Project, lv2:ConverterPlugin ;
 	doap:license <http://usefulinc.com/doap/licenses/gpl> ;
 	doap:maintainer <http://gareus.org/rgareus#me> ;
 	doap:name "Onset Trigger - Bassdrum Detection Mono@NAME_SUFFIX@";
 	lv2:optionalFeature lv2:hardRTCapable ;
 	lv2:microVersion 0 ;
-	lv2:minorVersion 2 ;
+	lv2:minorVersion 3 ;
 	lv2:port
 	[
 		a atom:AtomPort ,
@@ -26,37 +26,83 @@ ost:bassdrum_mono@URI_SUFFIX@
 		lv2:minimum 0;
 		lv2:maximum 192000;
 		lv2:portProperty lv2:reportsLatency, lv2:integer, pprops:notOnGUI;
-		rdfs:comment ""
+		rdfs:comment "Detecting the volume of the kick takes a bit of time, so the generated midi-signal is always late compared to the audio. This latency is reported to the plugin-host which can re-align the signal."
 	],
 	[
 		a lv2:ControlPort ,
 			lv2:InputPort ;
 		lv2:index 2 ;
+		lv2:symbol "threshold" ;
+		lv2:name "Signal Level Theshold [dBFS, RMS]" ;
+		lv2:minimum -60;
+		lv2:maximum 0.0;
+		lv2:default -40;
+		rdfs:comment "The minium required signal level (RMS) to trigger a midi-event. Note: the signal is first band-pass filtered (30-170Hz), so this does not directly correspond to the input signal's level."
+	],
+	[
+		a lv2:ControlPort ,
+			lv2:InputPort ;
+		lv2:index 3 ;
 		lv2:symbol "midinote" ;
-		lv2:name "Midi note to trigger" ;
+		lv2:name "Midi Note" ;
 		lv2:minimum 0.0 ;
 		lv2:maximum 127.0 ;
 		lv2:default 24.0;
 		lv2:portProperty lv2:integer;
-		rdfs:comment ""
+		units:unit units:midiNote;
+		rdfs:comment "The MIDI-note which is triggered once a signal is detected."
+	],
+	[
+		a lv2:ControlPort ,
+			lv2:InputPort ;
+		lv2:index 4 ;
+		lv2:symbol "velocity_min" ;
+		lv2:name "Midi Velocity Minimum" ;
+		lv2:minimum 1.0 ;
+		lv2:maximum 127.0 ;
+		lv2:default 16.0;
+		lv2:portProperty lv2:integer;
+		rdfs:comment "Minium midi-velocity of a trigger"
+	],
+	[
+		a lv2:ControlPort ,
+			lv2:InputPort ;
+		lv2:index 5 ;
+		lv2:symbol "velocity_scale" ;
+		lv2:name "Midi Velocity Scale Factor" ;
+		lv2:minimum 0.0 ;
+		lv2:maximum 4.0 ;
+		lv2:default 1.0;
+		rdfs:comment "Velocity Range over minimum"
+	],
+	[
+		a lv2:ControlPort ,
+			lv2:InputPort ;
+		lv2:index 6 ;
+		lv2:symbol "velocity_exponent" ;
+		lv2:name "Midi Velocity Exponent" ;
+		lv2:minimum 0.0 ;
+		lv2:maximum 1.0 ;
+		lv2:default 0.6;
+		rdfs:comment "RMS to Velocity Curve"
 	],
 	[
 		a lv2:AudioPort ,
 			lv2:InputPort ;
-		lv2:index 3 ;
+		lv2:index 7 ;
 		lv2:symbol "in" ;
 		lv2:name "Audio Input" ;
 	]
 	.
 
 ost:bassdrum_stereo@URI_SUFFIX@
-	a lv2:Plugin, doap:Project;
+	a lv2:Plugin, doap:Project, lv2:ConverterPlugin;
 	doap:license <http://usefulinc.com/doap/licenses/gpl> ;
 	doap:maintainer <http://gareus.org/rgareus#me> ;
 	doap:name "Onset Trigger - Bassdrum Detection Stereo@NAME_SUFFIX@";
 	lv2:optionalFeature lv2:hardRTCapable ;
 	lv2:microVersion 0 ;
-	lv2:minorVersion 2 ;
+	lv2:minorVersion 3 ;
 	lv2:port
 	[
 		a atom:AtomPort ,
@@ -73,35 +119,80 @@ ost:bassdrum_stereo@URI_SUFFIX@
 		lv2:index 1 ;
 		lv2:symbol "latency" ;
 		lv2:name "latency (samples)" ;
-		lv2:minimum 0.0 ;
+		lv2:minimum 0;
 		lv2:maximum 192000;
-		lv2:portProperty lv2:integer;
 		lv2:portProperty lv2:reportsLatency, lv2:integer, pprops:notOnGUI;
-		rdfs:comment ""
+		rdfs:comment "Detecting the volume of the kick takes a bit of time, so the generated midi-signal is always late compared to the audio. This latency is reported to the plugin-host which can re-align the signal."
 	],
 	[
 		a lv2:ControlPort ,
 			lv2:InputPort ;
 		lv2:index 2 ;
+		lv2:symbol "threshold" ;
+		lv2:name "Signal Level Theshold [dBFS, RMS]" ;
+		lv2:minimum -60;
+		lv2:maximum 0.0;
+		lv2:default -40;
+		rdfs:comment "The minium required signal level (RMS) to trigger a midi-event. Note: the signal is first band-pass filtered (30-170Hz), so this does not directly correspond to the input signal's level."
+	],
+	[
+		a lv2:ControlPort ,
+			lv2:InputPort ;
+		lv2:index 3 ;
 		lv2:symbol "midinote" ;
-		lv2:name "Midi note to trigger" ;
+		lv2:name "Midi Note" ;
 		lv2:minimum 0.0 ;
 		lv2:maximum 127.0 ;
 		lv2:default 24.0;
 		lv2:portProperty lv2:integer;
-		rdfs:comment ""
+		units:unit units:midiNote;
+		rdfs:comment "The MIDI-note which is triggered once a signal is detected."
+	],
+	[
+		a lv2:ControlPort ,
+			lv2:InputPort ;
+		lv2:index 4 ;
+		lv2:symbol "velocity_min" ;
+		lv2:name "Midi Velocity Minimum" ;
+		lv2:minimum 1.0 ;
+		lv2:maximum 127.0 ;
+		lv2:default 16.0;
+		lv2:portProperty lv2:integer;
+		rdfs:comment "Minium midi-velocity of a trigger"
+	],
+	[
+		a lv2:ControlPort ,
+			lv2:InputPort ;
+		lv2:index 5 ;
+		lv2:symbol "velocity_scale" ;
+		lv2:name "Midi Velocity Scale Factor" ;
+		lv2:minimum 0.0 ;
+		lv2:maximum 4.0 ;
+		lv2:default 1.0;
+		rdfs:comment "Velocity Range over minimum"
+	],
+	[
+		a lv2:ControlPort ,
+			lv2:InputPort ;
+		lv2:index 6 ;
+		lv2:symbol "velocity_exponent" ;
+		lv2:name "Midi Velocity Exponent" ;
+		lv2:minimum 0.0 ;
+		lv2:maximum 1.0 ;
+		lv2:default 0.6;
+		rdfs:comment "RMS to Velocity Curve"
 	],
 	[
 		a lv2:AudioPort ,
 			lv2:InputPort ;
-		lv2:index 3 ;
+		lv2:index 7 ;
 		lv2:symbol "in1" ;
 		lv2:name "Audio Input (left)" ;
 	],
 	[
 		a lv2:AudioPort ,
 			lv2:InputPort ;
-		lv2:index 4 ;
+		lv2:index 8 ;
 		lv2:symbol "in2" ;
 		lv2:name "Audio Input (Right)" ;
 	]
