@@ -55,6 +55,7 @@ typedef enum {
 	OST_LATENCY,
 	OST_THRESHOLD,
 	OST_MIDI_NOTE,
+	OST_MIDI_LENGTH,
 	OST_MIDI_VEL_MIN,
 	OST_MIDI_VEL_SCALE,
 	OST_MIDI_VEL_EXP,
@@ -67,6 +68,7 @@ typedef struct {
 	/* Input Ports */
 	float* a_in[2];
 	float* m_note;
+	float* m_time;
 	float* p_latency;
 	float* p_threshold;
 	float* m_vel_min;
@@ -92,7 +94,6 @@ typedef struct {
 	/* config */
 	double rate;
 	uint32_t n_channels;
-	uint32_t midi_note_off_cfg;
 	uint32_t volume_timeout_cfg;
 	float rms_omega;
 	float latency;
@@ -141,7 +142,6 @@ instantiate(
 	lv2_atom_forge_init(&self->forge, self->map);
 
 	/* config */
-	self->midi_note_off_cfg = MAX(5, .05 * rate)  ;
 	self->volume_timeout_cfg = MAX(1, .015 * rate)  ;
 	self->rate = rate;
 	self->rms_omega = 1.0f - expf(-2.0 * M_PI * 15.0 / rate);
@@ -186,6 +186,9 @@ connect_port(LV2_Handle handle,
 		case OST_MIDI_NOTE:
 			self->m_note = (float*)data;
 			break;
+		case OST_MIDI_LENGTH:
+			self->m_time = (float*)data;
+			break;
 		case OST_MIDI_VEL_MIN:
 			self->m_vel_min = (float*)data;
 			break;
@@ -228,8 +231,8 @@ run(LV2_Handle handle, uint32_t n_samples)
 
 	/* localize variables */
 	float const * const a_in = self->a_in[0];
+	float rms_postfilter_z;
 	float rms_postfilter = self->rms_postfilter;
-	float rms_postfilter_z = self->rms_postfilter;
 	float rms_volume = self->rms_volume;
 	uint32_t midi_note_off_timeout = self->midi_note_off_timeout;
 	uint32_t volume_timeout = self->volume_timeout;
@@ -245,6 +248,7 @@ run(LV2_Handle handle, uint32_t n_samples)
 	const float velocity_min = MAX(1.f, MIN(127.f, *self->m_vel_min)); // 1..127, default 16
 	const float velocity_scale = MAX(0.f, MIN(540.f, 140.f * *self->m_vel_scale)); // 1..540, default 140
 	const float velocity_exp = MAX(0.f, MIN(1.f, *self->m_vel_exp)); // 0..1, default .6
+	const float midi_note_off_cfg = MAX(5, MIN(self->rate, *self->m_time * 0.001 * self->rate));
 
 	*self->p_latency = self->latency;
 
@@ -280,7 +284,7 @@ run(LV2_Handle handle, uint32_t n_samples)
 			}
 		}
 		else if (rms_postfilter > threshold && rms_postfilter_z < rms_postfilter) {
-			midi_note_off_timeout = self->midi_note_off_cfg;
+			midi_note_off_timeout = midi_note_off_cfg;
 			volume_timeout = self->volume_timeout_cfg;
 			rms_volume = rms_postfilter;
 		}
