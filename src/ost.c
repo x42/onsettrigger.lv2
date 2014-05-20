@@ -59,6 +59,8 @@ typedef enum {
 	OST_MIDI_VEL_MIN,
 	OST_MIDI_VEL_SCALE,
 	OST_MIDI_VEL_EXP,
+	OST_FLT_FREQ,
+	OST_FLT_BAND,
 	OST_AIN_1,
 	OST_AIN_2,
 } PortIndex;
@@ -74,6 +76,8 @@ typedef struct {
 	float* m_vel_min;
 	float* m_vel_scale;
 	float* m_vel_exp;
+	float* f_freq;
+	float* f_band;
 
 	/* MIDI Out */
 	LV2_Atom_Sequence* midiout;
@@ -99,6 +103,8 @@ typedef struct {
 	float latency;
 	float threshold_db;
 	float threshold_sig;
+	float flt_freq;
+	float flt_band;
 
 } OST;
 
@@ -148,6 +154,8 @@ instantiate(
 	self->latency = .025 * rate;
 	self->threshold_db = -40;
 	self->threshold_sig = 0.01;
+	self->flt_freq = 60;
+	self->flt_band = 40;
 
 	/* state */
 	self->rms_postfilter = 0;
@@ -155,7 +163,7 @@ instantiate(
 	self->rms_volume = 0;
 	self->volume_timeout = 0;
 	self->midi_note = 24;
-	bandpass_setup(&self->fb, self->rate, 100, 70, 2);
+	bandpass_setup(&self->fb, self->rate, self->flt_freq, self->flt_band, 4);
 
 	return (LV2_Handle)self;
 }
@@ -197,6 +205,12 @@ connect_port(LV2_Handle handle,
 			break;
 		case OST_MIDI_VEL_EXP:
 			self->m_vel_exp = (float*)data;
+			break;
+		case OST_FLT_FREQ:
+			self->f_freq = (float*)data;
+			break;
+		case OST_FLT_BAND:
+			self->f_band = (float*)data;
 			break;
 	}
 }
@@ -240,8 +254,13 @@ run(LV2_Handle handle, uint32_t n_samples)
 
 	if (*self->p_threshold != self->threshold_db) {
 		self->threshold_db = *self->p_threshold;
-		const float thr = MAX(-60, MIN(0, *self->p_threshold));
+		const float thr = MAX(-80, MIN(0, *self->p_threshold));
 		self->threshold_sig = powf(10, 0.05 * thr);
+	}
+	if (*self->f_freq != self->flt_freq || *self->f_band != self->flt_band) {
+		self->flt_freq = *self->f_freq;
+		self->flt_band = *self->f_band;
+		bandpass_setup(&self->fb, self->rate, self->flt_freq, self->flt_band, 4);
 	}
 
 	const float threshold = self->threshold_sig;
