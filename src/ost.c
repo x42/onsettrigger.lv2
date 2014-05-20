@@ -87,6 +87,7 @@ typedef struct {
 	float rms_postfilter;
 	float rms_volume;
 	uint32_t volume_timeout;
+	uint8_t midi_note;
 
 	/* config */
 	double rate;
@@ -153,6 +154,7 @@ instantiate(
 	self->midi_note_off_timeout = 0;
 	self->rms_volume = 0;
 	self->volume_timeout = 0;
+	self->midi_note = 24;
 	bandpass_setup(&self->fb, self->rate, 100, 70, 2);
 
 	return (LV2_Handle)self;
@@ -213,8 +215,9 @@ static void midi_note(OST *self, int64_t tme, uint8_t velocity)
 	uint8_t raw_midi[3];
 	const uint8_t channel = 0; // TODO
 	raw_midi[0] = (channel & 0x0f) | ((velocity & 0x7f) ? 0x90 : 0x80);
-	raw_midi[1] = (uint8_t)(*self->m_note) & 0x7f;
+	raw_midi[1] = velocity != 0 ? ((uint8_t)(*self->m_note) & 0x7f) : self->midi_note;
 	raw_midi[2] = velocity & 0x7f;
+	if (velocity != 0) self->midi_note = raw_midi[1];
 	midi_tx(self, tme, raw_midi);
 }
 
