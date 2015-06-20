@@ -7,6 +7,7 @@ LIBDIR ?= lib
 
 override CFLAGS += -g $(OPTIMIZATIONS)
 BUILDDIR=build/
+onsettrigger_VERSION?=$(shell git describe --tags HEAD 2>/dev/null | sed 's/-g.*$$//;s/^v//' || echo "LV2")
 ###############################################################################
 LIB_EXT=.so
 
@@ -26,6 +27,13 @@ LV2LDFLAGS=-Wl,-Bstatic -Wl,-Bdynamic
 LIB_EXT=.so
 
 targets=$(BUILDDIR)$(LV2NAME)$(LIB_EXT)
+
+EXTENDED_RE=-r
+
+###############################################################################
+# extract versions
+LV2VERSION=$(onsettrigger_VERSION)
+include git2lv2.mk
 
 # check for build-dependencies
 ifeq ($(shell pkg-config --exists lv2 || echo no), no)
@@ -51,7 +59,7 @@ $(BUILDDIR)$(LV2NAME).ttl: lv2ttl/$(LV2NAME).ttl.in lv2ttl/$(LV2NAME).lv2.in Mak
 	@mkdir -p $(BUILDDIR)
 	sed "s/@LV2NAME@/$(LV2NAME)/g" \
 	    lv2ttl/$(LV2NAME).ttl.in > $(BUILDDIR)$(LV2NAME).ttl
-	sed "s/@URI_SUFFIX@//g;s/@NAME_SUFFIX@//g" \
+	sed "s/@URI_SUFFIX@//g;s/@NAME_SUFFIX@//g;s/@VERSION@/lv2:microVersion $(LV2MIC) ;lv2:minorVersion $(LV2MIN) ;/g" \
 	  lv2ttl/$(LV2NAME).lv2.in >> $(BUILDDIR)$(LV2NAME).ttl
 
 $(BUILDDIR)$(LV2NAME)$(LIB_EXT): src/ost.c src/spectr.c

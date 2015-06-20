@@ -4,6 +4,7 @@ ost:bassdrum_mono@URI_SUFFIX@
 	doap:license <http://usefulinc.com/doap/licenses/gpl> ;
 	doap:maintainer <http://gareus.org/rgareus#me> ;
 	doap:name "Onset Trigger - Bassdrum Detection Mono@NAME_SUFFIX@";
+	@VERSION@
 	lv2:optionalFeature lv2:hardRTCapable ;
 	lv2:microVersion 0 ;
 	lv2:minorVersion 5 ;
@@ -138,6 +139,7 @@ ost:bassdrum_stereo@URI_SUFFIX@
 	doap:license <http://usefulinc.com/doap/licenses/gpl> ;
 	doap:maintainer <http://gareus.org/rgareus#me> ;
 	doap:name "Onset Trigger - Bassdrum Detection Stereo@NAME_SUFFIX@";
+	@VERSION@
 	lv2:optionalFeature lv2:hardRTCapable ;
 	lv2:microVersion 0 ;
 	lv2:minorVersion 5 ;
