@@ -121,7 +121,7 @@ ost:bassdrum_mono@URI_SUFFIX@
 		lv2:name "Filter Bandwidth (advanced)" ;
 		lv2:minimum 10.0 ;
 		lv2:maximum 120.0 ;
-		lv2:default 40;
+		lv2:default 40.0;
 		units:unit units:hz;
 		lv2:portProperty pprops:expensive;
 		rdfs:comment "Signal Pre-filter Bandwidth"
@@ -259,7 +259,7 @@ ost:bassdrum_stereo@URI_SUFFIX@
 		lv2:name "Filter Bandwidth (advanced)" ;
 		lv2:minimum 10.0 ;
 		lv2:maximum 120.0 ;
-		lv2:default 40;
+		lv2:default 40.0;
 		units:unit units:hz;
 		lv2:portProperty pprops:expensive;
 		rdfs:comment "Signal Pre-filter Bandwidth"
