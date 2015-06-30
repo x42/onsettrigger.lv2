@@ -35,9 +35,10 @@ ost:bassdrum_mono@URI_SUFFIX@
 		lv2:index 2 ;
 		lv2:symbol "threshold" ;
 		lv2:name "Signal Level Theshold [dBFS, RMS]" ;
-		lv2:minimum -80;
+		lv2:minimum -80.0;
 		lv2:maximum 0.0;
-		lv2:default -40;
+		lv2:default -40.0;
+		units:unit units:db;
 		rdfs:comment "The minium required signal level (RMS) to trigger a midi-event. Note: the signal is first band-pass filtered (30-170Hz), so this does not directly correspond to the input signal's level."
 	],
 	[
@@ -107,7 +108,7 @@ ost:bassdrum_mono@URI_SUFFIX@
 		lv2:name "Filter Frequency (advanced)" ;
 		lv2:minimum 10.0 ;
 		lv2:maximum 300.0 ;
-		lv2:default 60;
+		lv2:default 60.0;
 		units:unit units:hz;
 		lv2:portProperty pprops:expensive;
 		rdfs:comment "Signal Pre-filter Frequency"
@@ -132,6 +133,7 @@ ost:bassdrum_mono@URI_SUFFIX@
 		lv2:symbol "in" ;
 		lv2:name "Audio Input" ;
 	]
+	rdfs:comment "Audio to Midi Onset Trigger, intended to trigger Bass/Kick-drums"
 	.
 
 ost:bassdrum_stereo@URI_SUFFIX@
@@ -171,9 +173,9 @@ ost:bassdrum_stereo@URI_SUFFIX@
 		lv2:index 2 ;
 		lv2:symbol "threshold" ;
 		lv2:name "Signal Level Theshold [dBFS, RMS]" ;
-		lv2:minimum -80;
+		lv2:minimum -80.0;
 		lv2:maximum 0.0;
-		lv2:default -40;
+		lv2:default -40.0;
 		units:unit units:db;
 		rdfs:comment "The minium required signal level (RMS) to trigger a midi-event. Note: the signal is first band-pass filtered (30-170Hz), so this does not directly correspond to the input signal's level."
 	],
@@ -244,7 +246,7 @@ ost:bassdrum_stereo@URI_SUFFIX@
 		lv2:name "Filter Frequency (advanced)" ;
 		lv2:minimum 10.0 ;
 		lv2:maximum 300.0 ;
-		lv2:default 60;
+		lv2:default 60.0;
 		units:unit units:hz;
 		lv2:portProperty pprops:expensive;
 		rdfs:comment "Signal Pre-filter Frequency"
@@ -276,4 +278,5 @@ ost:bassdrum_stereo@URI_SUFFIX@
 		lv2:symbol "in2" ;
 		lv2:name "Audio Input (Right)" ;
 	]
+	rdfs:comment "Audio to Midi Onset Trigger, intended to trigger Bass/Kick-drums (summed dtereo input)"
 	.
