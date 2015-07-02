@@ -5,6 +5,9 @@ PREFIX ?= /usr/local
 CFLAGS ?= -Wall -Wno-unused-function
 LIBDIR ?= lib
 
+STRIP=strip
+STRIPFLAGS=-s
+
 override CFLAGS += -g $(OPTIMIZATIONS)
 BUILDDIR=build/
 onsettrigger_VERSION?=$(shell git describe --tags HEAD 2>/dev/null | sed 's/-g.*$$//;s/^v//' || echo "LV2")
@@ -16,6 +19,7 @@ LOADLIBES=-lm
 
 LV2NAME=onsettrigger
 BUNDLE=onsettrigger.lv2
+targets=
 
 #########
 
@@ -23,12 +27,29 @@ LV2UIREQ=
 GLUICFLAGS=-I.
 GTKUICFLAGS=-I.
 
-LV2LDFLAGS=-Wl,-Bstatic -Wl,-Bdynamic
-LIB_EXT=.so
+UNAME=$(shell uname)
+ifeq ($(UNAME),Darwin)
+  LV2LDFLAGS=-dynamiclib
+  LIB_EXT=.dylib
+  EXTENDED_RE=-E
+  STRIPFLAGS=-u -r -arch all -s lv2syms
+  targets+=lv2syms
+else
+  LV2LDFLAGS=-Wl,-Bstatic -Wl,-Bdynamic
+  LIB_EXT=.so
+  EXTENDED_RE=-r
+endif
 
-targets=$(BUILDDIR)$(LV2NAME)$(LIB_EXT)
+ifneq ($(XWIN),)
+  CC=$(XWIN)-gcc
+  STRIP=$(XWIN)-strip
+  LV2LDFLAGS=-Wl,-Bstatic -Wl,-Bdynamic -Wl,--as-needed
+  LIB_EXT=.dll
+  override LDFLAGS += -static-libgcc -static-libstdc++
+endif
 
-EXTENDED_RE=-r
+
+targets+=$(BUILDDIR)$(LV2NAME)$(LIB_EXT)
 
 ###############################################################################
 # extract versions
@@ -47,6 +68,9 @@ override CFLAGS += `pkg-config --cflags lv2`
 default: all
 
 all: $(BUILDDIR)manifest.ttl $(BUILDDIR)$(LV2NAME).ttl $(targets)
+
+lv2syms:
+	echo "_lv2_descriptor" > lv2syms
 
 $(BUILDDIR)manifest.ttl: lv2ttl/manifest.ttl.in lv2ttl/manifest.lv2.in Makefile
 	@mkdir -p $(BUILDDIR)
@@ -67,6 +91,7 @@ $(BUILDDIR)$(LV2NAME)$(LIB_EXT): src/ost.c src/spectr.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -std=c99 \
 	  -o $(BUILDDIR)$(LV2NAME)$(LIB_EXT) src/ost.c \
 	  -shared $(LV2LDFLAGS) $(LDFLAGS) $(LOADLIBES)
+	$(STRIP) $(STRIPFLAGS) $(BUILDDIR)$(LV2NAME)$(LIB_EXT)
 
 # install/uninstall/clean target definitions
 
@@ -82,7 +107,7 @@ uninstall:
 	-rmdir $(DESTDIR)$(LV2DIR)/$(BUNDLE)
 
 clean:
-	rm -f $(BUILDDIR)manifest.ttl $(BUILDDIR)$(LV2NAME).ttl $(BUILDDIR)$(LV2NAME)$(LIB_EXT)
+	rm -f $(BUILDDIR)manifest.ttl $(BUILDDIR)$(LV2NAME).ttl $(BUILDDIR)$(LV2NAME)$(LIB_EXT) lv2syms
 	-test -d $(BUILDDIR) && rmdir $(BUILDDIR) || true
 
 .PHONY: clean all install uninstall
