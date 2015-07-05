@@ -42,14 +42,15 @@ enum filterCoeff {a0 = 0, a1, a2, b0, b1, b2};
 enum filterState {z1 = 0, z2};
 
 #define NODENORMAL (1e-12)
+#define MAXORDER (6)
 
 struct Filter {
-	double W[6];
+	double W[MAXORDER];
 	double z[2];
 };
 
 struct FilterBank {
-	struct Filter f[6];
+	struct Filter f[MAXORDER];
 	uint32_t filter_stages;
 	bool ac;
 };
@@ -65,7 +66,7 @@ proc_one(struct Filter * const f, const double in)
 }
 
 static inline float
-bandpass_process(struct FilterBank * const fb, float in)
+bandpass_process(struct FilterBank * const fb, const float in)
 {
 	fb->ac = !fb->ac;
 	double out = in + ((fb->ac) ? NODENORMAL : -NODENORMAL);
@@ -86,7 +87,7 @@ bandpass_setup(struct FilterBank *fb,
 	/* must be an even number for the algorithm below */
 	fb->filter_stages = order;
 
-	assert (order > 0 && (order%2) == 0);
+	assert (order > 0 && (order%2) == 0 && order <= MAXORDER);
 	assert (band > 0);
 
 	for (uint32_t i = 0; i < fb->filter_stages; ++i) {
@@ -102,18 +103,19 @@ bandpass_setup(struct FilterBank *fb,
 	if (wu > M_PI - 1e-9) {
 		/* limit band to below nyquist */
 		wu = M_PI - 1e-9;
-		fprintf(stderr, "tuna.lv2: band f:%9.2fHz (%.2fHz -> %.2fHz) exceeds nysquist (%.0f/2)\n",
+		fprintf(stderr, "onsettrigger.lv2: band f:%9.2fHz (%.2fHz -> %.2fHz) exceeds nysquist (%.0f/2)\n",
 				freq, freq-band/2, freq+band/2, rate);
-		fprintf(stderr, "tuna.lv2: shifted to f:%.2fHz (%.2fHz -> %.2fHz)\n",
+		fprintf(stderr, "onsettrigger.lv2: shifted to f:%.2fHz (%.2fHz -> %.2fHz)\n",
 				rate * (wu + wl) *.25 / M_PI,
 				rate * wl * .5 / M_PI,
 				rate * wu * .5 / M_PI);
 	}
 	if (wl < 1e-9) {
+		/* this is just for completeness, it cannot happen with spectr.lv2 */
 		wl = 1e-9;
-		fprintf(stderr, "tuna.lv2: band f:%9.2fHz (%.2fHz -> %.2fHz) contains sub-bass frequencies\n",
+		fprintf(stderr, "onsettrigger.lv2: band f:%9.2fHz (%.2fHz -> %.2fHz) contains sub-bass frequencies\n",
 				freq, freq-band/2, freq+band/2);
-		fprintf(stderr, "tuna.lv2: shifted to f:%.2fHz (%.2fHz -> %.2fHz)\n",
+		fprintf(stderr, "onsettrigger.lv2: shifted to f:%.2fHz (%.2fHz -> %.2fHz)\n",
 				rate * (wu + wl) *.25 / M_PI,
 				rate * wl * .5 / M_PI,
 				rate * wu * .5 / M_PI);
@@ -145,7 +147,7 @@ bandpass_setup(struct FilterBank *fb,
 		v += 4 * (c_b2 * (c_a2 - 1) + 1);
 		v = csqrt (v);
 
-		const complex_t u0 = ab_2 + creal(-v) + ab_2 * creal(c) + _I * (cimag(-v) + ab_2 * cimag(c));
+		const complex_t u0 = ab_2 + creal(v * -1.) + ab_2 * creal(c) + _I * (cimag(v * -1.) + ab_2 * cimag(c));
 		const complex_t u1 = ab_2 + creal( v) + ab_2 * creal(c) + _I * (cimag( v) + ab_2 * cimag(c));
 
 #define ASSIGN_BP(FLT, PC, odd) \
