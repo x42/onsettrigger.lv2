@@ -26,6 +26,9 @@ Compiling this plugin requires the LV2 SDK, gnu-make and a c-compiler.
 
   # test run w/simple GTK GUI
   jalv.gtk 'http://gareus.org/oss/lv2/onsettrigger#bassdrum_mono'
+  #or
+  jalv.gtk 'http://gareus.org/oss/lv2/onsettrigger#bassdrum_stereo'
+
 
   sudo make uninstall PREFIX=/usr
 ```
