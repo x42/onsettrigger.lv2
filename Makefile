@@ -5,8 +5,8 @@ PREFIX ?= /usr/local
 CFLAGS ?= -Wall -Wno-unused-function
 LIBDIR ?= lib
 
-STRIP=strip
-STRIPFLAGS=-s
+STRIP?=strip
+STRIPFLAGS?=-s
 
 override CFLAGS += -g $(OPTIMIZATIONS)
 BUILDDIR=build/
