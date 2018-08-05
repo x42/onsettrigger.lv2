@@ -25,12 +25,15 @@
 #include <stdbool.h>
 #include <assert.h>
 
-#if __cplusplus >= 201103L || (defined __cplusplus && defined __APPLE__)
+#if __cplusplus >= 201103L || ((defined __APPLE__ || defined __FreeBSD__) && defined __cplusplus)
 # include <complex>
 # define csqrt(XX) std::sqrt(XX)
 # define creal(XX) std::real(XX)
 # define cimag(XX) std::imag(XX)
 # define _I ((complex_t)(1i))
+  #ifdef __cpp_lib_complex_udls
+    using namespace std::literals::complex_literals;
+  #endif
   typedef std::complex<double> complex_t;
 #else
 # include <complex.h>
@@ -58,11 +61,11 @@ struct FilterBank {
 static inline double
 proc_one(struct Filter * const f, const double in)
 {
-	const double w   = in - f->W[a1]*f->z[z1] - f->W[a2]*f->z[z2];
-	const double out =      f->W[b0]*w        + f->W[b1]*f->z[z1] + f->W[b2]*f->z[z2];
-	f->z[z2] = f->z[z1];
-	f->z[z1] = w;
-	return out;
+
+	const double y = f->W[b0] * in + f->z[z1];
+	f->z[z1]       = f->W[b1] * in - f->W[a1] * y + f->z[z2];
+	f->z[z2]       = f->W[b2] * in - f->W[a2] * y;
+	return y;
 }
 
 static inline float
@@ -111,7 +114,6 @@ bandpass_setup(struct FilterBank *fb,
 				rate * wu * .5 / M_PI);
 	}
 	if (wl < 1e-9) {
-		/* this is just for completeness, it cannot happen with spectr.lv2 */
 		wl = 1e-9;
 		fprintf(stderr, "onsettrigger.lv2: band f:%9.2fHz (%.2fHz -> %.2fHz) contains sub-bass frequencies\n",
 				freq, freq-band/2, freq+band/2);
@@ -185,6 +187,7 @@ bandpass_setup(struct FilterBank *fb,
 	fb->f[0].W[b2] *= creal(scale);
 
 #ifdef DEBUG_SPECTR
+	printf("CFG SR:%f FQ:%f BW:%f O:%d\n", rate, freq, band, order);
 	printf("SCALE (%g,  %g)\n", creal(scale), cimag(scale));
 	for (uint32_t i = 0; i < fb->filter_stages; ++i) {
 		struct Filter *flt = &fb->f[i];
