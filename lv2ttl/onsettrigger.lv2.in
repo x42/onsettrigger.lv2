@@ -5,6 +5,7 @@ ost:bassdrum_mono@URI_SUFFIX@
 	doap:maintainer <http://gareus.org/rgareus#me> ;
 	doap:name "Onset Trigger - Bassdrum Detection Mono@NAME_SUFFIX@";
 	@VERSION@
+	lv2:requiredFeature urid:map ;
 	lv2:optionalFeature lv2:hardRTCapable ;
 	lv2:port
 	[
@@ -140,6 +141,7 @@ ost:bassdrum_stereo@URI_SUFFIX@
 	doap:maintainer <http://gareus.org/rgareus#me> ;
 	doap:name "Onset Trigger - Bassdrum Detection Stereo@NAME_SUFFIX@";
 	@VERSION@
+	lv2:requiredFeature urid:map ;
 	lv2:optionalFeature lv2:hardRTCapable ;
 	lv2:port
 	[
