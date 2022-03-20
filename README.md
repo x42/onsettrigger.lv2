@@ -19,7 +19,7 @@ Install
 Compiling this plugin requires the LV2 SDK, gnu-make and a c-compiler.
 
 ```bash
-  git clone git://github.com/x42/onsettrigger.lv2
+  git clone https://github.com/x42/onsettrigger.lv2
   cd onsettrigger.lv2
   make
   sudo make install PREFIX=/usr
